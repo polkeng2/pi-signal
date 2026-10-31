@@ -26,7 +26,11 @@ _Avoid_: source, provider
 
 **Story**:
 One piece of news. A candidate until it gets into the Digest.
-_Avoid_: article, item, post
+_Avoid_: item, post
+
+**Article**:
+The full web page a Story links to; the orchestrator reads it.
+_Avoid_: full text, body
 
 **Position**:
 A company the owner holds, shown in Markets as one card.

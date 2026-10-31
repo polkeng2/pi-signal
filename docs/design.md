@@ -23,7 +23,7 @@ Learn how an agent harness works (tools, context, the loop, durability) by build
 
 1. A Cron Trigger fires once a day so the Digest is ready around **09:00-10:00 Europe/Madrid**. Cron is in UTC, so watch DST.
 2. The cron wakes the single Durable Object, which runs Pi Durable through `PiHarness`.
-3. **Fetch** every Feed (code, no model). Tech Feeds and Markets sources are listed below.
+3. **Fetch** every Feed (code, no model). Tech and Markets Feeds are listed below.
 4. **Prefilter in code**, before any model: drop Stories already seen (normalised URL: no `utm_*`, no `www.`, no trailing slash), drop anti-topics from `interests.md` by keyword, drop anything older than the window.
 5. **Score with Clef** (binding call, see [findings/clef.md](findings/clef.md)). The **Signal Score** (0-100) is a weighted mean computed in code; a constant threshold decides who gets in.
    - Tech: relevance to my interests (`score`), substance vs hype (`score`: announces something concrete such as a release, data or a change, vs opinion or speculation), and "is this news, not a tutorial or listicle" (`noul` gate).
@@ -41,7 +41,7 @@ Candidate tools: `fetch_feeds`, `score_stories`, `read_story`, `publish_digest`.
 
 ### Tech Section
 
-- **Feeds** (one fetch each, a config list so adding one is one line): HN via Algolia (stories over 150 points in the last 24 h), Lobsters `hottest.json`, Simon Willison's Atom, Techmeme, GitHub Changelog, OpenAI news, Google DeepMind blog, Anthropic (no official RSS: diff `sitemap.xml` against yesterday's). Big feeds are parsed only for their first ~20 items. Rejected: Reddit (blocks Cloudflare IPs), Yahoo, arXiv, Marketaux free, The Verge and Ars (noise).
+- **Feeds** (one fetch each, a config list so adding one is one line): HN via Algolia (stories over 150 points in the last 24 h), Lobsters `hottest.json`, Simon Willison's Atom, Techmeme, GitHub Changelog, OpenAI news, Google DeepMind blog, Anthropic (no official RSS: diff `sitemap.xml` against yesterday's). Big feeds are parsed only for their first ~20 items. Not used: Reddit (blocks Cloudflare IPs), Yahoo, arXiv, Marketaux free, The Verge and Ars (noise).
 - The run prepares **up to 20** Stories; the page shows the top 10 and a "Ver más" button shows the other 10, already made. No model call happens from the page.
 
 ### Markets Section
@@ -49,7 +49,7 @@ Candidate tools: `fetch_feeds`, `score_stories`, `read_story`, `publish_digest`.
 All Positions are listed on Nasdaq.
 
 - **One card per Position**, always shown: logo, ticker, company name, **previous close** and the day's change, and up to 3 key Stories, or "sin novedades".
-- **Sources:** Finnhub (`/quote` for the previous close, `/company-news` per ticker, `/stock/profile2` for the logo; free personal key) and SEC EDGAR (`data.sec.gov/submissions/CIK….json`, 8-K filings; needs a descriptive `User-Agent` with a contact address; 10 req/s).
+- **Feeds:** Finnhub (`/quote` for the previous close, `/company-news` per ticker, `/stock/profile2` for the logo; free personal key) and SEC EDGAR (`data.sec.gov/submissions/CIK….json`, 8-K filings; needs a descriptive `User-Agent` with a contact address; 10 req/s).
 - **Strong move:** a change of ±4% or more (a constant in code) marks the Position, and the orchestrator looks in its Stories for why.
 - **Earnings:** an 8-K with Item 2.02 gets a highlighted card. The orchestrator reads the press release (exhibit 99.1) and summarizes the key figures (revenue, EPS, guidance, and anything like a capex jump) and the price reaction. Results published after the US close show their figures that day; the reaction appears in the next day's Digest, because the page shows the previous close. The consensus estimate is not in the 8-K; include it only if Finnhub's free plan provides it (to verify).
 
@@ -57,7 +57,7 @@ All Positions are listed on Nasdaq.
 
 - Served by **the same Worker**: server-rendered HTML, minimal CSS, no framework and no build. JavaScript only for Upvote / Downvote. Readable on a phone.
 - Protected by **Cloudflare Access** with the owner's email (free, no auth code in the Worker). The page shows the owner's Positions, so it cannot be public.
-- **Two tabs:** Tech and Markets.
+- **Two Sections:** Tech and Markets.
 - **History:** ← → between days. Digests are kept **90 days**.
 - **Search:** by topic, company or ticker over the stored Stories, results in date order with their dates, so the owner can read a sequence ("24/5 Meta despide a 3.000 personas · 22/5 capex de 8.000 M · …"). Full-text search would use SQLite FTS5 inside the Durable Object (availability to verify).
 - **Each Story:** Subject tag (or logo), Headline, Summary, Why It Matters, the full link, 👍 / 👎.
@@ -84,7 +84,7 @@ Facts: [findings/cloudflare-free-plan.md](findings/cloudflare-free-plan.md), [fi
 
 | Item | Estimate |
 |---|---|
-| Clef, Tech | ~100 candidates × 3 questions, state ≈ interests + title + snippet ≈ 0.9k tokens ≈ **20 neurons** each → ~2.0k |
+| Clef, Tech | ~100 candidates × 3 questions, state ≈ interests + the Story's Feed text (heading and snippet) ≈ 0.9k tokens ≈ **20 neurons** each → ~2.0k |
 | Clef, Markets | ~110 candidates (cap ~10 per Position) × 2 questions ≈ 0.8k tokens ≈ 17.5 neurons → ~1.9k |
 | GLM reading | ~35 Stories (20 Tech + ~15 Markets) × (~3k in + ~500 out incl. reasoning) ≈ 35 neurons → ~1.2k |
 | GLM orchestration | ~300 |
