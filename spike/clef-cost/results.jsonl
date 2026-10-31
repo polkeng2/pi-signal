@@ -1,0 +1,7 @@
+{"state":"tiny","q":"q1","chars":{"profile":30,"offer":43},"ms":485,"usage":{"input_tokens":205,"output_tokens":0},"answerKeys":["technical"]}
+{"state":"tiny","q":"q6","chars":{"profile":30,"offer":43},"ms":383,"usage":{"input_tokens":764,"output_tokens":0},"answerKeys":["technical","experience","behavioral","career","location","language"]}
+{"state":"full","q":"q1","chars":{"profile":3200,"offer":6000},"ms":315,"usage":{"input_tokens":2186,"output_tokens":0},"answerKeys":["technical"]}
+{"state":"full","q":"q2","chars":{"profile":3200,"offer":6000},"ms":437,"usage":{"input_tokens":2312,"output_tokens":0},"answerKeys":["technical","experience"]}
+{"state":"full","q":"q6","chars":{"profile":3200,"offer":6000},"ms":587,"usage":{"input_tokens":2745,"output_tokens":0},"answerKeys":["technical","experience","behavioral","career","location","language"]}
+{"state":"fullx2","q":"q1","chars":{"profile":6400,"offer":12000},"ms":919,"usage":{"input_tokens":4210,"output_tokens":0},"answerKeys":["technical"]}
+{"state":"fullx2","q":"q6","chars":{"profile":6400,"offer":12000},"ms":543,"usage":{"input_tokens":4769,"output_tokens":0},"answerKeys":["technical","experience","behavioral","career","location","language"]}

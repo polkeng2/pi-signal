@@ -42,6 +42,8 @@ const CHECKS = {
   "resume-start": "resumeStart",
   "resume-status": "resumeStatus",
   "resume-crash": "resumeCrash",
+  "wait-start": "waitStart",
+  "wait-status": "waitStatus",
 } as const satisfies Record<string, keyof Spike>;
 
 // Ticket #6. Synthetic warehouse: one replay-safe read, one effectful write.
@@ -132,6 +134,37 @@ export class Spike extends DurableObject<Env> {
           ],
         }),
       );
+      // Ticket #18: one tiny AI subrequest per call; each result is logged in our own table.
+      registry.install(
+        defineExtension({
+          name: "spike-wait-tools",
+          tools: [
+            defineTool({
+              name: "ping",
+              description: "Ping the service with a sequence number n. Read-only.",
+              parameters: Type.Object({ n: Type.Integer({ description: "Sequence number" }) }),
+              replay: "safe",
+              executionMode: "sequential",
+              execute: async (args, api) => {
+                let error: string | null = null;
+                try {
+                  await this.env.AI.run(SUBREQ_MODEL, { prompt: "hi", max_tokens: 1 });
+                } catch (e) {
+                  error = e instanceof Error ? e.message : String(e);
+                }
+                this.sql.exec(
+                  "INSERT INTO spike_pings (session, n, at, error) VALUES (?, ?, ?, ?)",
+                  String(api.conversationId),
+                  args.n,
+                  Date.now(),
+                  error,
+                );
+                return { output: [{ type: "text", text: error ? `error: ${error}` : `pong ${args.n}` }] };
+              },
+            }),
+          ],
+        }),
+      );
       const models = createModels();
       models.setProvider(this.ai.provider);
       return Harness.open(storage, { models, registry, onWake }, context);
@@ -191,6 +224,53 @@ export class Spike extends DurableObject<Env> {
     return {
       verdict: receipt.accepted ? "pass" : "fail",
       evidence: { ranIn: "durable-object", run: { session: session.id, operationId, mode, holdMs }, receipt },
+    };
+  }
+
+  /**
+   * Ticket #18, step 1. Start a run whose prompt asks for `count` sequential `ping` calls
+   * (one AI subrequest each, plus one orchestrator model call per turn), and return at once.
+   * With `session`, submit a follow-up to that session instead (joins the running wait).
+   */
+  async waitStart(params: Record<string, string>): Promise<CheckResult> {
+    const count = Math.min(Math.max(Number(params.count ?? 30) || 1, 1), 100);
+    const session = params.session ? this.harness.sessions.get(params.session) : await this.harness.sessions.create();
+    const operationId = `wait-${params.session ? "followup" : "start"}-${Date.now()}`;
+    const prompt = `Synthetic test. Call the ping tool ${count} times, one call at a time, with n=1, 2, ... ${count} in order. Never call two tools in one turn. After the last one, reply with the single word DONE.`;
+    const receipt = await session.submit(prompt, { operationId });
+    return {
+      verdict: receipt.accepted ? "pass" : "fail",
+      evidence: { ranIn: "durable-object", session: session.id, operationId, count, receipt },
+    };
+  }
+
+  /** Ticket #18, step 2. Pings so far (the first error shows where the limit hit), and the run's model-call count. */
+  async waitStatus(params: Record<string, string>): Promise<CheckResult> {
+    const session =
+      params.session ??
+      this.sql.exec<{ session: string }>("SELECT session FROM spike_pings ORDER BY id DESC LIMIT 1").toArray()[0]?.session;
+    if (!session) return { verdict: "fail", evidence: { error: "no pings yet" } };
+    const pings = this.sql
+      .exec<{ n: number; at: number; error: string | null }>("SELECT n, at, error FROM spike_pings WHERE session = ? ORDER BY id", session)
+      .toArray();
+    const pending = await this.harness.pending({ session });
+    const messages = (await this.harness.messages({ session })).flatMap((e) => e.model ?? []);
+    const assistants = messages.filter((m): m is AssistantMessage => m.role === "assistant");
+    const errors = pings.filter((p) => p.error);
+    return {
+      verdict: "pass",
+      evidence: {
+        session,
+        settled: pending.length === 0,
+        pingsMade: pings.length,
+        pingErrors: errors.length,
+        firstError: errors[0] ?? null,
+        lastPingN: pings.at(-1)?.n ?? null,
+        orchestratorCalls: assistants.length,
+        // ping subrequests + orchestrator calls; compare with 50 at the first error
+        subrequestsBeforeFirstError: errors[0] ? pings.indexOf(errors[0] as never) + assistants.length : null,
+        pingTimes: pings.map((p) => p.at),
+      },
     };
   }
 
@@ -462,6 +542,8 @@ function createResumeTables(sql: SqlStorage): true {
   sql.exec(`CREATE TABLE IF NOT EXISTS spike_tool_runs (
     id INTEGER PRIMARY KEY, session TEXT, tool TEXT, call_id TEXT, started_at INTEGER, finished_at INTEGER)`);
   sql.exec(`CREATE TABLE IF NOT EXISTS spike_crashes (at INTEGER)`);
+  sql.exec(`CREATE TABLE IF NOT EXISTS spike_pings (
+    id INTEGER PRIMARY KEY, session TEXT, n INTEGER, at INTEGER, error TEXT)`);
   return true;
 }
 

@@ -1,45 +1,61 @@
-# Job Scout
+# Signal
 
-A personal, proactive agent that finds job offers matching its owner every morning and delivers the best ones over Telegram.
+A personal, proactive agent that reads tech news and news about its owner's investments every morning, filters out hype and noise, and publishes what matters on a private web page.
 
 ## Language
 
-**Job Scout**:
+**Signal**:
 The agent this repo builds; it runs on a daily schedule without being asked.
 _Avoid_: bot, assistant
 
-**Digest**:
-The daily message listing the top-ranked offers, each with buttons for the owner to respond to.
-_Avoid_: report, summary, newsletter
-
-**Scouting Run**:
-One day's search, made of one or more batches, ending in a digest.
+**Daily Run**:
+One day's work: fetch the Feeds, score, read, write and publish the Digest.
 _Avoid_: job, execution, cycle
 
-**Batch**:
-One round within a scouting run: fetch new offers from a query, then score up to 40 of them.
-_Avoid_: page, chunk, round
+**Digest**:
+The day's page, with its two Sections.
+_Avoid_: newsletter, report, summary
 
-**Offer**:
-A single job posting from a source, with its title, company, link, salary, location and work mode.
-_Avoid_: job, posting, listing, vacancy
+**Section**:
+One half of the Digest: Tech or Markets.
+_Avoid_: tab, category
 
-**Work Mode**:
-Whether an offer is on-site, hybrid or remote.
-_Avoid_: modality, presence
+**Feed**:
+A place Signal reads from (HN, Lobsters, Finnhub, EDGAR…).
+_Avoid_: source, provider
 
-**Fit Score**:
-How well an offer matches the owner, as judged by the scoring model.
-_Avoid_: rank, match, compatibility
+**Story**:
+One piece of news. A candidate until it gets into the Digest.
+_Avoid_: article, item, post
 
-**Accept**:
-The owner's ✅ on an offer in the digest, meaning "I want to apply to this one".
-_Avoid_: approve, like, pick
+**Position**:
+A company the owner holds, shown in Markets as one card.
+_Avoid_: holding, stock
 
-**Shortlist**:
-The accepted offers not yet exported, delivered as one plain-text block the owner hands to their application workflow.
-_Avoid_: export, list, favorites
+**Signal Score**:
+How much a Story matters to the owner, computed in code from Clef's answers.
+_Avoid_: rank, relevance, rating
 
-**Dismiss**:
-The owner's ❌ on an offer in the digest.
-_Avoid_: reject (reserved for an employer turning the owner down)
+**Subject**:
+The short tag on a Tech Story ("Claude", "Anthropic"); in Markets the Position's ticker.
+_Avoid_: label, topic
+
+**Headline**:
+The line that says what happened, written by the orchestrator.
+_Avoid_: title
+
+**Summary**:
+The few lines under the Headline carrying the significant facts.
+_Avoid_: description, abstract
+
+**Why It Matters**:
+One line on why the Story is relevant to the owner.
+_Avoid_: insight, takeaway
+
+**Upvote**:
+The owner's 👍 on a Story.
+_Avoid_: like, accept
+
+**Downvote**:
+The owner's 👎 on a Story.
+_Avoid_: dislike, dismiss, reject

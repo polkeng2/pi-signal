@@ -1,6 +1,6 @@
 # pi best practices
 
-A running guide to building Job Scout on pi. Vocabulary follows [GLOSSARY.md](../GLOSSARY.md). Runtime: [ADR 0001](adr/0001-pi-durable-on-piharness.md). Scope: [design.md](design.md).
+A running guide to building Signal on pi (started for Job Scout, its first domain; the pi lessons carry over). Vocabulary follows [GLOSSARY.md](../GLOSSARY.md). Runtime: [ADR 0001](adr/0001-pi-durable-on-piharness.md). Scope: [design.md](design.md).
 
 **Status: first version, 2026-10-29, plus the spike's learnings (last section).** The numbered sections are written from primary sources. pi 1.0 shipped on 2026-10-01, so the guidance is young and some of it will change. Pi Durable is experimental: its README says the API "changes without notice between releases". Re-check every practice against the pinned version before relying on it.
 
@@ -28,7 +28,7 @@ Sources:
 
 ## 1. Tool definitions
 
-Job Scout's orchestrator has three tools: `search_offers`, `score_offers`, `send_digest`.
+Signal's orchestrator has a few dedicated tools (candidates: `fetch_feeds`, `score_stories`, `read_story`, `publish_digest`; contracts open in design.md).
 
 1. **Define parameters with a TypeBox schema.** Pi Durable's `defineTool` takes `name`, `description`, `parameters: Type.Object(...)` and `execute`. Optional fields: `structuredOutputSchema`, `replay`, `callers`, `deferred`. **[Official]** Durable README.
 2. **Describe the tool and each parameter.** `description` is what tells the model what the tool does, and parameters take `{ description }`. **[Official]** Core README (`read_file` example).
@@ -55,11 +55,11 @@ The design worries that validation calls `new Function()`. What the published pa
 ## 2. Durability
 
 1. **Tools do not re-run after a crash unless marked `replay: "safe"`.** After a crash or redeploy, only `replay: "safe"` tools run again. Any other interrupted tool does not re-run, and the model gets an `interrupted` error result carrying the output committed so far. The default is not safe. Mark safe only when repeating is harmless. **[Official]** CF-Pi, Durable.
-   - For Job Scout: `search_offers` and `score_offers` are candidates for `replay: "safe"`, as long as scoring writes are idempotent. `send_digest` must not be safe.
-2. **A safe tool with outside effects still needs its own idempotency.** The README says so for nested calls and gives no general mechanism for tools. For Telegram, key sends and edits yourself, for example by offer id and run id, stored in our own tables. **[Official]** Durable README. The mechanism itself is **[Silent]**.
+   - For Signal: read-only tools (`fetch_feeds`, `score_stories`, `read_story`) are candidates for `replay: "safe"`, as long as their writes are keyed upserts. `publish_digest` is safe only once it is idempotent in code.
+2. **A safe tool with outside effects still needs its own idempotency.** The README says so for nested calls and gives no general mechanism for tools. Key any outside effect yourself, for example by Story id and run id, stored in our own tables. **[Official]** Durable README. The mechanism itself is **[Silent]**.
 3. **Intent is committed before `execute()` runs.** Each call is its own durable task. Plan on "at least once" for safe tools and "at most once" for the rest. **[Official]** Durable README.
-4. **Make every input idempotent with an id that survives retries.** In the Durable README the key is `requestId` on `submit()`; resubmitting the same `requestId` returns the existing submission. In CF-Pi the key is called `operationId` and resubmitting returns the existing operation with `accepted: false`. For Telegram taps, use the callback id. **[Official]** CF-Pi, Durable.
-   - **Resolved: both names are right, at different layers.** `requestId` is the field on pi-durable's own `Harness` (`root.submit(...)`, `submissionByRequest` in its `types.d.ts`). `PiHarness` in `agents` 0.31.0 wraps it and exposes `operationId`: `session.submit(input, { operationId })` returns a `PiReceipt { operationId, session, accepted }`. Job Scout talks to `PiHarness`, so it uses `operationId`. **[Spike]** pinned `.d.ts` files, `check=resume-start`.
+4. **Make every input idempotent with an id that survives retries.** In the Durable README the key is `requestId` on `submit()`; resubmitting the same `requestId` returns the existing submission. In CF-Pi the key is called `operationId` and resubmitting returns the existing operation with `accepted: false`. Derive the id from the event (for a cron, the date of the Daily Run). **[Official]** CF-Pi, Durable.
+   - **Resolved: both names are right, at different layers.** `requestId` is the field on pi-durable's own `Harness` (`root.submit(...)`, `submissionByRequest` in its `types.d.ts`). `PiHarness` in `agents` 0.31.0 wraps it and exposes `operationId`: `session.submit(input, { operationId })` returns a `PiReceipt { operationId, session, accepted }`. Signal talks to `PiHarness`, so it uses `operationId`. **[Spike]** pinned `.d.ts` files, `check=resume-start`.
 5. **Use `submit()` then `wait()` for long work, `prompt()` only for short.** `submit()` stores the input durably and returns a receipt; `wait(operationId)` returns `done` or `unanswered`. **[Official]** CF-Pi.
 6. **Input sent while the session is busy queues by default.** `whenBusy: "steer"` or `session.steer()` joins the current run after its current tool round. **[Official]** CF-Pi.
 7. **Record non-user input with `entry`.** Use your own `kind` (start it with `app.`; `pi.` is reserved). It is a label, not a permission check. **[Official]** CF-Pi.
@@ -75,22 +75,22 @@ The design worries that validation calls `new Function()`. What the published pa
 
 **Not stated by the sources:**
 - **[Silent]** How `waitUntil`-style or subrequest accounting behaves per alarm wake. The free-plan 50-subrequest and 10 ms CPU limits are not discussed in the pi docs. That is spike check 2.
-- **[Silent]** Whether the Pi harness stays within the free plan's CPU limit during a batch. Spike check 3.
+- **[Silent]** Whether the Pi harness stays within the free plan's CPU limit during a run. Spike check 3.
 
-## 3. Context management across batches
+## 3. Context management across a long run
 
-A scouting run is several batches. The conversation must not grow without bound.
+A Daily Run has many turns (score, read, write up). The conversation must not grow without bound.
 
 1. **Automatic compaction exists and is configurable.** `settings.compaction` takes `enabled`, `reserveTokens` (16384), `keepRecentTokens` (20000), `backgroundTokens` (32768, `0` disables background compaction) and per-model `modelOverrides`. Compaction appends a `pi.compaction` summary entry; older entries stay in storage. Values shown are the README's example, not verified defaults. **[Official]** Durable README.
 2. **Compaction recovers from overflow.** On a context-overflow rejection, generation compacts and retries once. A failed compaction at the blocking threshold fails the run with `model_error`. **[Official]** Durable README.
 3. **Set the context window for `@cf/` models.** Unlisted `@cf/` ids default to 128,000 context, 8,192 output tokens and zero cost. Override with `contextWindow`, `maxTokens` and `cost` in the model metadata, or compaction thresholds and cost tracking will be wrong. **[Official]** CF-PiAI.
 4. **Compact manually when you know the point.** `root.compact("Keep the failing test names")` takes a focus instruction. **[Official]** Durable README.
-5. **Start a new context with `reset(summary)`.** A handoff note starts fresh; older entries stay stored. This is the official route for a clean batch boundary. **[Official]** CF-Pi, Durable README.
+5. **Start a new context with `reset(summary)`.** A handoff note starts fresh; older entries stay stored. This is the official route for a clean boundary between chunks of work. **[Official]** CF-Pi, Durable README.
 6. **Shape what the model sees at the agent-core level.** `transformContext` (prune, compact, add external context), `prepareRequest` (rebuild context before every request) and `finishTurn` (`continue`, `end`) are the hooks. **[Official]** Core README. They apply to the `Agent` in pi-agent-core; how they appear through `PiHarness` is **[Silent]**.
 7. **Keep tool output small.** Only `output` and `details` enter the transcript; put structured bulk in `structuredOutput`. **[Official]** Durable README. (This follows from the channels above. It is our application of that rule.)
 
 **Not stated by the sources:**
-- **[Silent]** No guidance on how often to `reset()` in a multi-batch job, or how much a summary loses. For Job Scout, the stop rule, dedup and scores live in code and our tables, so the model needs little history. Deciding between `reset()` per batch and compaction is a spike or v1 choice.
+- **[Silent]** No guidance on how often to `reset()` in a long run, or how much a summary loses. For Signal, dedup, scores and thresholds live in code and our tables, so the model needs little history. Deciding between `reset()` per chunk and compaction is a spike or v1 choice.
 - **[Silent]** GLM "preserved thinking" for multi-turn runs (mentioned in design.md) is not covered by the pi sources read here.
 
 ## 4. Version pinning and upgrades
@@ -156,10 +156,10 @@ Pi docs say little about the free plan. These are the relevant official facts.
 - ~~Whether `AI` binding calls count toward the 50-subrequest limit, and how pi's own calls count.~~ They count; pi adds none (S5).
 - ~~Which of `requestId` and `operationId` the pinned `PiHarness` API exposes.~~ `operationId` (section 2.4).
 - The Harmony/gpt-oss malformed-call handling.
-- How `reset()` versus compaction behaves over many batches.
-- A general idempotency pattern for effectful tools. The spike showed why one is needed (S10); the pattern is our own (design.md, Telegram).
-- How pi spreads one run's turns across alarm invocations, and whether the alarm invocation has the same 50-subrequest limit as an RPC call.
-- Clef's cost per question: is the `state` counted once per call or once per question?
+- How `reset()` versus compaction behaves over a long run.
+- A general idempotency pattern for effectful tools. The spike showed why one is needed (S10); the pattern is our own (a ledger in our own tables; see findings/pi-durable.md).
+- ~~How pi spreads one run's turns across alarm invocations.~~ One detached wait per run; 106 AI calls in it raised no subrequest error (findings/pi-durable.md).
+- ~~Clef's cost per question.~~ The state counts once per call; ~112 tokens per extra question (findings/clef.md).
 
 ## Spike learnings
 
