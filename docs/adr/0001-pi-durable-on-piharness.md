@@ -4,7 +4,7 @@ status: accepted
 
 # Pi Durable on PiHarness in a Durable Object is the agent runtime
 
-A scouting run spans several batches. A batch can crash halfway. The owner answers the digest hours later, by tapping a Telegram button. All of that has to resume against the same saved conversation. So the agent runs on `@earendil-works/pi-durable` hosted by Cloudflare's `PiHarness`, inside a single Durable Object. Its SQLite also holds our own tables: offers, scores, decisions and usage. Each batch runs in its own alarm wake, which keeps it under the free plan's per-invocation limits of 50 subrequests and 10 ms CPU. A button tap becomes an idempotent `submit()` keyed by the Telegram callback id.
+A scouting run spans several batches. A batch can crash halfway. The owner answers the digest hours later, by tapping a Telegram button. All of that has to resume against the same saved conversation. So the agent runs on `@earendil-works/pi-durable` hosted by Cloudflare's `PiHarness`, inside a single Durable Object. Its SQLite also holds our own tables: offers, scores, decisions and usage. A scouting run's batches share one detached wait; a measured run made 106 AI calls in one wait without hitting the free plan's 50-subrequest limit, but Cloudflare does not document that, so each batch counts its own subrequests and stops at 48 (see the design's budget). If "Too many subrequests" ever appears, the fallback is one run per batch. A button tap becomes an idempotent `submit()` keyed by the Telegram callback id.
 
 ## Considered Options
 
