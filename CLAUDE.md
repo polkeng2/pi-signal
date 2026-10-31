@@ -32,7 +32,7 @@ The design is done. **The next step is a map for the v1 spec**: settle the "Open
 
 - **Implement with ponytail.** Any implementation work (`/implement`, `/implement-spec`, or a plain request) uses the `ponytail` skill. That includes implementer subagents: their brief tells them to call it alongside `tdd`. If something was built without it, run `ponytail-review` on it before calling the work done.
 - **Ask before each phase change.** When a grilling ends, say it has ended and ask whether to start implementing; wait for the owner's yes. When an implementation ends, say it has ended and ask whether to commit; wait for the owner's yes.
-- **Short commit messages.** A title as short as possible that still says what the commit does, so it is understood from the title alone. No body unless the owner asks.
+- **Short commit messages.** A title as short as possible that still says what the commit does, so it is understood from the title alone. No body unless the owner asks. Enforced by `.githooks/commit-msg`; enable it once per clone with `git config core.hooksPath .githooks`.
 - **Explain every change, for learning.** The owner is learning agent architecture and how to build on pi. Before a change, say in a few lines what you will do and why, naming the pi or harness concept it touches (tools, the loop, context, durability, replay, idempotency...). After it, give a short summary of what changed and what it teaches. Keep both brief and in Spanish.
 
 ## Agent skills

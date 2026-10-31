@@ -1,0 +1,12 @@
+#!/bin/sh
+# Short commit messages: a title of at most 72 chars, then only trailers (Key: value).
+msg=$(grep -v '^#' "$1")
+title=$(printf '%s\n' "$msg" | head -n 1)
+if [ ${#title} -gt 72 ]; then
+  echo "commit-msg: title is ${#title} chars, max 72" >&2
+  exit 1
+fi
+if printf '%s\n' "$msg" | tail -n +2 | grep -v '^$' | grep -qvE '^[A-Za-z-]+: '; then
+  echo "commit-msg: only trailers (Key: value) may follow the title" >&2
+  exit 1
+fi
