@@ -4,26 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Job Scout is a personal, proactive agent built on pi (pi.dev). It runs on Cloudflare (Workers, a Durable Object, Workers AI). Every morning it sends the owner a digest of high-fit job offers over Telegram. The owner talks to Claude in Spanish, while code, identifiers and docs are in English.
+Signal is a personal, proactive agent built on pi (pi.dev). It runs on Cloudflare (Workers, a Durable Object, Workers AI). Every morning it reads tech news and news about the owner's Positions, filters out hype and noise with Clef, writes up what matters with an orchestrator model, and publishes a Digest on a private web page served by the same Worker. The owner talks to Claude in Spanish, while code, identifiers and docs are in English. The Digest's own text (Headline, Summary) is in Spanish.
+
+The project started as Job Scout, a job-offer digest. That domain is gone; what its spike taught is in `docs/findings/`.
 
 The goal is to learn how an agent harness works by building a minimal one, so keep the layer thin. Do not pull in pi-coding-agent or template scaffolding. Prefer a small number of dedicated tools, and put decisions in code wherever no model is needed.
 
 ## Read before working
 
-- [docs/design.md](docs/design.md) holds the v1 design: every decision, the budget, evals, model notes and the spike checklist. It is the source of truth for scope.
-- [GLOSSARY.md](GLOSSARY.md) is the domain vocabulary. Use its terms in code and docs, and avoid the words listed under _Avoid_. For example, ❌ is **Dismiss**, never "reject".
+- [docs/design.md](docs/design.md) holds the v1 design: every decision, the budget, evals, model notes and what is still open for the spec. It is the source of truth for scope.
+- [GLOSSARY.md](GLOSSARY.md) is the domain vocabulary. Use its terms in code and docs, and avoid the words listed under _Avoid_. For example, a company the owner holds is a **Position**, never a "holding".
 - [docs/adr/](docs/adr/) holds architecture decisions. 0001 is Pi Durable on PiHarness in a Durable Object.
+- [docs/findings/](docs/findings/) holds what was measured: Clef's cost and shapes, the free plan's limits, how a pi run executes. [docs/pi-best-practices.md](docs/pi-best-practices.md) is the running pi guide.
 
 ## Current status
 
-The design is done and the spike is done. Its results are in the "Spike outcome" section of `docs/design.md`, and the design body already reflects them. The spike code lives in `spike/` and is evidence, not the start of v1. **The next step is the v1 spec.** First settle the open decisions listed in the spike outcome (batch count, CPU, batch size).
+The design is done. **The next step is a map for the v1 spec**: settle the "Open for the spec" list in `docs/design.md`, starting with the run's shape under the subrequest limit. The spike code in `spike/` is evidence for the findings, not the start of v1.
 
 ## Constraints
 
-- **Target the Cloudflare free plan.** The design is sized to 50 subrequests per invocation (`AI` binding calls count) and 10k neurons/day. The 10 ms CPU figure is exceeded in practice (13-74 ms) without being enforced; see the spike outcome. Do not assume Workers Paid.
+- **Target the Cloudflare free plan.** 50 subrequests per invocation (`AI` binding calls count) and 10k neurons/day. The 10 ms CPU figure is exceeded in practice (13-74 ms) without being enforced; see `docs/findings/cloudflare-free-plan.md`. Do not assume Workers Paid.
 - **Pin `@earendil-works/pi-*` versions exactly**, because pi-durable is experimental.
-- **The repo is public.** The owner's profile (`profile.md`) and all secrets (`.dev.vars`, bot token, API keys) stay out of git.
-- The owner's existing job-search workspace is at `C:\Users\polke\repos\ai-job-search`. It is a reference for the scoring rubric (`.claude/skills/job-application-assistant/04-job-evaluation.md`) and profile sources. Read from it, but never copy personal data into this repo.
+- **The repo is public.** The owner's interests and Positions (`interests.md`) and all secrets (`.dev.vars`, API keys, the EDGAR contact address) stay out of git.
+- **No buy or sell advice.** Signal summarizes and filters news; it never recommends trades.
 
 ## Working rules
 
