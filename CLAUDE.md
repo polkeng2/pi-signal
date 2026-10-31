@@ -39,7 +39,7 @@ The design is done. **The next step is a map for the v1 spec**: settle the "Open
 
 ### Issue tracker
 
-GitHub Issues on `polkeng2/pi-jobs`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+GitHub Issues on `polkeng2/pi-signal`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
