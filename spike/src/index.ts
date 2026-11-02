@@ -233,7 +233,7 @@ export class Spike extends DurableObject<Env> {
    * With `session`, submit a follow-up to that session instead (joins the running wait).
    */
   async waitStart(params: Record<string, string>): Promise<CheckResult> {
-    const count = Math.min(Math.max(Number(params.count ?? 30) || 1, 1), 100);
+    const count = Math.min(Math.max(Number(params.count ?? 30) || 1, 1), 400);
     const session = params.session ? this.harness.sessions.get(params.session) : await this.harness.sessions.create();
     const operationId = `wait-${params.session ? "followup" : "start"}-${Date.now()}`;
     const prompt = `Synthetic test. Call the ping tool ${count} times, one call at a time, with n=1, 2, ... ${count} in order. Never call two tools in one turn. After the last one, reply with the single word DONE.`;

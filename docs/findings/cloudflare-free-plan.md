@@ -5,7 +5,7 @@ Measured on deployed free-plan Workers, 2026-10-29/30, with the versions pinned 
 ## Subrequests
 
 - **`AI` binding calls are subrequests.** They share the 50 per invocation with `fetch`; call 51 throws "Too many subrequests by single Worker invocation", whatever the mix. pi's harness adds none. Measured inside one Durable Object RPC invocation (S5, #5).
-- **Inside a detached pi wait the limit was not hit.** Runs with 51, 62 and 106 AI calls (one with a follow-up submitted mid-run) raised no error. Cloudflare does not document this, so do not build on it: keep a code counter on `fetch` and `AI.run`, and have a fallback (split the work into several runs, each submitted after the previous settles). Evidence: `spike/WAIT.md`, #18. Not measured: runs past 106 calls or past the 10-minute wait budget.
+- **Inside a detached pi wait the limit is enforced, but not at 50.** Runs with 51, 62 and 106 AI calls (one with a follow-up submitted mid-run) raised no error. A run asking for 340 pings (2026-11-01) did: the first "Too many subrequests" came at ping 85 (~87 calls counting the orchestrator), and 65 of 340 pings failed in all. Failures were not continuous, so the counter seems to reset somewhere (heartbeat or a new invocation), but when is unknown. Cloudflare does not document any of this: a single run for the day loses calls without warning. Keep a code counter on `fetch` and `AI.run` and split the work into several runs, each submitted after the previous settles. Evidence: `spike/WAIT.md`, #18. Not measured: where exactly the counter resets, or runs past the 10-minute wait budget.
 - How the wait works (why the counter may not reset per turn): [pi-durable.md](pi-durable.md).
 
 ## CPU

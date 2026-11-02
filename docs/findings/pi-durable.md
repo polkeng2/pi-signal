@@ -22,7 +22,7 @@ Read in the pinned `agents` 0.31.0 and `@earendil-works/pi-durable` 1.4.0 source
 
 ## Subrequests across a wait
 
-Measured (`spike/WAIT.md`): 51, 62 and 106 AI calls inside one run raised no "Too many subrequests". So the 50-per-invocation limit is **not shown to apply** to detached work, but Cloudflare does not document that. Design rule: count subrequests in code and keep a fallback of one run per chunk of work, each submitted after the previous one settles (a fresh `submit()` on an idle pi starts a fresh invocation). See [cloudflare-free-plan.md](cloudflare-free-plan.md).
+Measured (`spike/WAIT.md`): 51, 62 and 106 AI calls inside one run raised no "Too many subrequests", but a run of 340 pings hit it from ping 85 and lost 65 of them. So the limit **does apply** to detached work, at a threshold and reset point Cloudflare does not document. Design rule: count subrequests in code and keep a fallback of one run per chunk of work, each submitted after the previous one settles (a fresh `submit()` on an idle pi starts a fresh invocation). See [cloudflare-free-plan.md](cloudflare-free-plan.md).
 
 ## Durability rules that follow
 
