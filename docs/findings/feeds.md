@@ -23,7 +23,3 @@ Stories in the last 24 h by points: over 100 → 16, over 150 → 13, over 200 �
 ## Finnhub
 
 Not verified: it needs the owner's key. Still open: consensus estimate and logo on the free plan.
-
-## Tooling note
-
-On this machine's `curl`, the `-w` option fails with error 43 (a bad argument); the request works without it.

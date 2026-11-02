@@ -91,7 +91,7 @@ Facts: [findings/cloudflare-free-plan.md](findings/cloudflare-free-plan.md), [fi
 | **Daily Run** | **~5.4k neurons**, under the ~9k usable (10k minus ~10% retry headroom) |
 | Subrequests | ~25 Feed / API fetches + ~210 Clef + ~35 article fetches + ~70 GLM calls ≈ **~340 AI and fetch calls** |
 
-**The subrequest count is the real risk.** One pi wait made 106 AI calls without error, but that is undocumented and ~340 was never tried. Settling the run's shape is the first open decision.
+**The subrequest count is the real risk.** A single run of ~340 calls lost 65 of them to "Too many subrequests" (measured; see [findings/cloudflare-free-plan.md](findings/cloudflare-free-plan.md)), so the Daily Run is split into several runs of about 40 calls, each submitted after the previous settles.
 
 ## Evals
 
@@ -112,19 +112,7 @@ GLM reasons before every answer and the reasoning is billed as output. It may ne
 
 ## Open for the spec
 
-To settle in the next map, before the v1 spec:
-
-1. **Run shape under the subrequest limit:** one run for the whole day (relies on the undocumented wait behaviour), or several runs (per Section, or per chunk of ≤ 48 calls), each submitted after the previous settles. A cheap measurement past 106 calls may decide it.
-2. **Tool contracts:** argument / result schemas and error shapes for the four tools; which are `replay: "safe"`.
-3. **Clef questions:** exact wording, legends, weights and thresholds per Section.
-4. **Orchestrator prompt**, including the Headline rule and the Spanish output.
-5. **SQLite schema** for the tables above, and FTS5 availability for search; whether Stories outlive the 90 days for a longer search history.
-6. **How feedback reaches storage:** a plain Durable Object RPC write (no model needed) or a pi `submit()`.
-7. **`interests.md` format** and the KV upload script.
-8. **Feed details:** Anthropic sitemap diff, HN point threshold, per-Feed item caps; Finnhub free-plan coverage (consensus estimates, logo); EDGAR CIK mapping.
-9. **Page:** layout, Upvote / Downvote endpoint, search UI, Cloudflare Access setup steps.
-10. **Cron and DST**, secrets (Finnhub key, EDGAR contact), deploy procedure.
-11. **Repository and test layout.**
+What is decided and what is still open for the v1 spec lives in the map [Map: v1 spec for Signal](https://github.com/polkeng2/pi-signal/issues/21). It is kept there, in one place, so this file does not repeat it.
 
 ## Pinned versions
 

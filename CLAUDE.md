@@ -12,14 +12,14 @@ The goal is to learn how an agent harness works by building a minimal one, so ke
 
 ## Read before working
 
-- [docs/design.md](docs/design.md) holds the v1 design: every decision, the budget, evals, model notes and what is still open for the spec. It is the source of truth for scope.
+- [docs/design.md](docs/design.md) holds the v1 design: every decision, the budget, evals and model notes. It is the source of truth for scope.
 - [GLOSSARY.md](GLOSSARY.md) is the domain vocabulary. Use its terms in code and docs, and avoid the words listed under _Avoid_. For example, a company the owner holds is a **Position**, never a "holding".
 - [docs/adr/](docs/adr/) holds architecture decisions. 0001 is Pi Durable on PiHarness in a Durable Object.
 - [docs/findings/](docs/findings/) holds what was measured: Clef's cost and shapes, the free plan's limits, how a pi run executes. [docs/pi-best-practices.md](docs/pi-best-practices.md) is the running pi guide.
 
 ## Current status
 
-The design is done. **The next step is a map for the v1 spec**: settle the "Open for the spec" list in `docs/design.md`, starting with the run's shape under the subrequest limit. The spike code in `spike/` is evidence for the findings, not the start of v1.
+The design is done and the v1 spec is being mapped in [Map: v1 spec for Signal](https://github.com/polkeng2/pi-signal/issues/21) (label `wayfinder:map`). That ticket is the one place that lists what is decided and what is still open; read it before proposing work. The spike code in `spike/` is evidence for the findings, not the start of v1.
 
 ## Constraints
 
@@ -30,7 +30,8 @@ The design is done. **The next step is a map for the v1 spec**: settle the "Open
 
 ## Working rules
 
-- **Implement with ponytail.** Any implementation work (`/implement`, `/implement-spec`, or a plain request) uses the `ponytail` skill. That includes implementer subagents: their brief tells them to call it alongside `tdd`. If something was built without it, run `ponytail-review` on it before calling the work done.
+- **Write executable code with ponytail.** Whenever the work adds or changes code that runs (TypeScript, tests, scripts), whether through `/implement`, `/implement-spec` or a plain request, use the `ponytail` skill. That includes implementer subagents: their brief tells them to call it alongside `tdd`. If such code was built without it, run `ponytail-review` on it before calling the work done. Markdown and other docs are written directly.
+- **Commit straight to `main`.** The owner is the only contributor, so every change, implementation included, goes directly to `main` with no branch or PR. A spike may live on its own branch.
 - **Ask before each phase change.** When a grilling ends, say it has ended and ask whether to start implementing; wait for the owner's yes. When an implementation ends, say it has ended and ask whether to commit; wait for the owner's yes.
 - **Short commit messages.** A title as short as possible that still says what the commit does, so it is understood from the title alone. No body unless the owner asks. Enforced by `.githooks/commit-msg`; enable it once per clone with `git config core.hooksPath .githooks`.
 - **Explain every change, for learning.** The owner is learning agent architecture and how to build on pi. Before a change, say in a few lines what you will do and why, naming the pi or harness concept it touches (tools, the loop, context, durability, replay, idempotency...). After it, give a short summary of what changed and what it teaches. Keep both brief and in Spanish.
