@@ -31,8 +31,10 @@ The design is done and the v1 spec is being mapped in [Map: v1 spec for Signal](
 ## Working rules
 
 - **Write executable code with ponytail.** Whenever the work adds or changes code that runs (TypeScript, tests, scripts), whether through `/implement`, `/implement-spec` or a plain request, use the `ponytail` skill. That includes implementer subagents: their brief tells them to call it alongside `tdd`. If such code was built without it, run `ponytail-review` on it before calling the work done. Markdown and other docs are written directly.
-- **Commit straight to `main`.** The owner is the only contributor, so every change, implementation included, goes directly to `main` with no branch or PR. A spike may live on its own branch.
-- **Ask before each phase change.** When a grilling ends, say it has ended and ask whether to start implementing; wait for the owner's yes. When an implementation ends, say it has ended and ask whether to commit; wait for the owner's yes.
+- **Ask before every commit.** Never commit on your own. When work is ready, say so and ask whether to commit; wait for the owner's yes. After the yes, commit and push in the same step.
+- **Small changes go straight to `main`.** Once the owner approves, a commit from a plain request or a small `/implement` is pushed directly to `main`, with no branch or PR. A spike may live on its own branch.
+- **Big changes go through a PR.** When the work comes from `/implement-spec`, or is otherwise a large change touching many files, work on a branch and, after the owner approves, push it and open a PR instead of pushing to `main`. Follow the `pr` skill for the body. Never merge the PR without the owner's yes.
+- **Ask before the grilling-to-implementation switch.** When a grilling ends, say it has ended and ask whether to start implementing; wait for the owner's yes.
 - **Short commit messages.** A title as short as possible that still says what the commit does, so it is understood from the title alone. No body unless the owner asks. Enforced by `.githooks/commit-msg`; enable it once per clone with `git config core.hooksPath .githooks`.
 - **Explain every change, for learning.** The owner is learning agent architecture and how to build on pi. Before a change, say in a few lines what you will do and why, naming the pi or harness concept it touches (tools, the loop, context, durability, replay, idempotency...). After it, give a short summary of what changed and what it teaches. Keep both brief and in Spanish.
 
